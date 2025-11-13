@@ -1,0 +1,266 @@
+metadata:
+  title: Child and Youth Welfare Cost Allocation & Assessment
+  short title: Welfare Cost Assessment (Kostenheranziehung)
+  comment: A comprehensive system to determine benefit eligibility, contribution obligations, and income assessments for child and youth welfare services.
+  authors:
+    - Jim Graszer
+---
+include:
+  - docassemble.AssemblyLine:assembly_line.yml
+---
+modules:
+  - .contributions
+  - docassemble.base.util
+  - docassemble.base.functions
+---
+initial: True
+code: |
+  set_language('de')
+  set_locale('DE.utf8')
+  set_locale(currency_symbol='€')
+  update_locale()
+---
+objects:
+  - users: ALPeopleList.using(there_are_any=True)
+  - costs_file: DAStaticFile.using(filename='data/sources/income_cost.csv')
+---
+sections:
+  - section_intro: Welcome
+  - section_recipient: Recipient
+  - section_summary: Summary
+---
+#################### Interview order #####################
+mandatory: True
+code: |
+  nav.set_section('section_intro')
+  welcome
+  set_progress(5)
+  benefits
+  monthly_cost
+
+  nav.set_section('section_about')
+  set_progress(15)
+  users[0].name.first
+  users[0].pregnant
+  users[0].benefits
+  users[0].cash_benefit
+  users[0].contributor
+  users[0].contributor_benefits
+  users[0].receive_benefits
+  monthly_income
+  tax_deduction
+  insurance
+  daynight_contributes
+  additonal_children
+
+  nav.set_section('section_summary')
+  set_progress(100)
+  estimate_cost
+  summary
+
+  #docs
+---
+id: welcome
+question: |
+  Child and Youth Welfare Cost Allocation & Assessment
+subquestion: |
+  Welfare Cost Assessment (Kostenheranziehung)
+continue button field: welcome
+--- 
+id: benefits subject to cost consideration
+question: |
+  Which of the following benefits are applicable?
+fields: 
+  - (Select all that apply): benefits
+    datatype: checkboxes
+    choices:
+      - Housing for young people in residential settings
+      - Housing for parents with children in residential settings
+      - Care/support in emergency residential situations
+      - Placement for attending or completing school
+      - Help with upbringing (full-time foster care, children's homes, etc.)
+      - Integration support for children/youth with disabilities
+      - Temporary protective custody (Inobhutnahme)
+      - Support for young adults (similar to residential services)
+      - Day/partial-time care in emergency or regular settings
+      - Upbringing support in day groups or partial facilities
+      - Integration support in day facilities
+      - Support for young adults (if related to residential services)
+---
+id: monthly cost
+question: |
+  Actual monthly cost of the service
+fields:
+  - Cost: monthly_cost
+    datatype: currency
+---
+id: recipient
+question: |
+  Recipent of the service
+fields: 
+  - First name: users[0].name.first
+  - Last name: users[0].name.last
+  - Age: users[0].Age
+  - Gender: users[0].gender
+    datatype: radio
+    choices:
+      - Male: male
+      - Female: female
+      - Other: other
+  - Other gender: users[0].other_gender
+    show if:
+      variable: users[0].gender  
+      is: other
+---
+id: recipient has children 
+question: |
+  Is the recipient pregnant or has child under 6?
+fields: 
+  - no label: users[0].pregnant
+    datatype: yesnoradio
+---
+id: recipient benefit
+question: |
+  Does the recipient receive child benefits?
+fields:
+  - no label: users[0].benefits
+    datatype: yesnoradio
+---
+code: |
+  if users[0].benefits:
+    child_benefit = 255
+---
+id: recipient cash benefit
+question: |
+  Does the recipient gets cash benefits that serve the same purpose as the respective youth welfare benefit?
+fields:
+  - no label: users[0].cash_benefit
+    datatype: yesnoradio 
+---
+id: contributors
+question: |
+  Who is responsible for contributing to the costs?
+fields:
+  - no label: users[0].contributor
+    datatype: radio
+    choices:
+      - Parent: parent
+      - Child or adolescent: child
+      - Young adult (over 18): adult
+---
+id: contributor child benefit
+question: |
+  Does the person required to contribute receive child benefit (Kindergeld)?
+subquestion: |
+  Include regular child allowance or similar recurring payments.
+fields: 
+  - no label: users[0].contributor_benefits
+    datatype: yesnoradio
+---
+id: contributor youth welfare benefit
+question: |
+  Does the person required to contribute receive cash benefits that cover the same purpose as youth welfare services?
+subquestion: |
+  For example: cash payments intended to cover costs for child or youth care, support, or placement.
+fields:
+  - no label: users[0].receive_benefits
+    datatype: yesnoradio
+---
+id: monthly income 
+question: |
+  What is their average monthly income?
+fields: 
+  - Monthly income: monthly_income
+    datatype: currency
+---
+id: deduction
+question: |
+  Do you have any expenses or deductions that reduce your income?
+subquestion: |
+  These are:
+
+  - Taxes
+  - Social security contributions
+  - Insurance premiums
+  - Necessary expenses (e.g., rent, debt payments)
+  - Other (please specify in comments below)
+fields: 
+  - taxes: tax_deduction
+    datatype: currency
+  - Compulsory social security contributions: ss_contribution
+    datatype: currency
+  - Contributions, appropriate in terms of reason and amount, to public or private insurance or similar institutions to cover the risks of old age, illness, need for long-term care, and unemployment: other_contributions
+    datatype: currency
+---
+id: further costs
+question: |
+  Further costs
+fields: 
+  - Contributions to public or private insurance or similar institutions: insurance
+    datatype: currency
+  - Necessary expenses associated with earning the income: expenses
+    datatype: currency
+  - Debt obligations: debt
+    datatype: currency
+---
+id: day and night care
+question: |
+  Does the parent have to contribute to these day/night care costs?
+subquestion: |
+  If yes, please indicate the monthly amount the parent must pay.
+fields:
+  - Parent contributes: daynight_contributes
+    datatype: yesnoradio
+  - Monthly parent contribution: daynight_contribution_amount
+    datatype: number
+    show if: daynight_contributes
+---
+id: additional children
+question: |
+  Is the person assessed for the costs of more than one person?
+fields:
+  - no label: additonal_children
+    datatype: yesnoradio
+  - How many: number_children
+    show if: additonal_children 
+  - Which child is receiving services: child_position
+    datatype: radio
+    choices: 
+      - first
+      - second
+      - third
+      - additional
+    show if: additonal_children
+---
+code: |
+  deductions = tax_deduction + ss_contribution + other_contributions
+  adjusted_income = (monthly_income - deductions)
+  cost_share = adjusted_income * 0.25
+  additional_cost = (insurance + expenses + debt)
+
+  income_group = adjusted_income - additional_cost
+
+  # Use the income and child to determine cost contribution returning up to 3 levels:
+  result_cost = calculate_cost(costs_file.path(), income_group, child_position)
+
+  estimate_cost = True
+---
+id: summary
+event: summary
+question: |
+  Summary of your responses:
+subquestion: |
+  - Benefits applicable: ${ benefits.any_true() }
+  - contributor: ${ 'Parent' if 'Parent' in users[0].contributor else '' } ${ 'Child' if 'Child or adolescent' in users[0].contributor else '' } ${ 'Young adult' if 'Young adult' in users[0].contributor else '' }
+  - Monthly income: € ${ monthly_income }
+  - Adjusted income: € ${ adjusted_income }
+  - Cost contribution: € ${ cost_share }
+  - Additional reduction: € ${ additional_cost }
+  - Income level: € ${ adjusted_income - additional_cost }
+
+  
+  **Results** € ${ result_cost }
+
+buttons:
+- Exit: exit
+- Restart: restart

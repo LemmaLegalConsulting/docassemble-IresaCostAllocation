@@ -1,0 +1,28 @@
+license = "MIT"
+license-files = [
+    "LICENSE",
+]
+
+[build-system]
+requires = [
+    "setuptools==80.9.0",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docassemble.IresaCostAllocation"
+version = "0.0.1"
+description = "A docassemble extension."
+readme = "README.md"
+authors = [
+    { name = "Jim Graszer", email = "jim@lemmalegal.com" },
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://docassemble.org"
+
+[tool.setuptools.packages.find]
+where = [
+    ".",
+]
