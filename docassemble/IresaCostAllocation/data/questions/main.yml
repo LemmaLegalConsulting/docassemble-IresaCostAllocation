@@ -19,6 +19,8 @@ code: |
   set_locale('DE.utf8')
   set_locale(currency_symbol='€')
   update_locale()
+
+  CHILD_BENEFIT = 255
 ---
 objects:
   - users: ALPeopleList.using(there_are_any=True)
@@ -35,7 +37,7 @@ code: |
   nav.set_section('section_intro')
   welcome
   set_progress(5)
-  benefits
+  service_category
   monthly_cost
 
   nav.set_section('section_about')
@@ -52,6 +54,7 @@ code: |
   insurance
   daynight_contributes
   additonal_children
+  child_position
 
   nav.set_section('section_summary')
   set_progress(100)
@@ -66,26 +69,68 @@ question: |
 subquestion: |
   Welfare Cost Assessment (Kostenheranziehung)
 continue button field: welcome
---- 
-id: benefits subject to cost consideration
+---
+id: service_selection
 question: |
-  Which of the following benefits are applicable?
-fields: 
-  - (Select all that apply): benefits
-    datatype: checkboxes
-    choices:
-      - Housing for young people in residential settings
-      - Housing for parents with children in residential settings
-      - Care/support in emergency residential situations
-      - Placement for attending or completing school
-      - Help with upbringing (full-time foster care, children's homes, etc.)
-      - Integration support for children/youth with disabilities
-      - Temporary protective custody (Inobhutnahme)
-      - Support for young adults (similar to residential services)
-      - Day/partial-time care in emergency or regular settings
-      - Upbringing support in day groups or partial facilities
-      - Integration support in day facilities
-      - Support for young adults (if related to residential services)
+  Which service does the recipient require?
+fields:
+  - no label: service_category
+    datatype: radio
+    choices: 
+      code: | 
+        service_labels
+---
+template: service_1_1_template
+content: Housing for young people in residential (Section 13 (3))
+---
+template: service_1_2_template
+content: Housing for parents with children in shared residential arrangements (Section 19)
+---
+template: service_1_3_template
+content: Emergency care/support for children and adolescents (Section 20)
+---
+template: service_1_4_template
+content: Placement support for children and adolescents to attend or finish school (Section 21)
+---
+template: service_1_5_template
+content: Assistance with upbringing (full-time foster care, children's homes}, etc.) (Section 92)
+---
+template: service_1_6_template
+content: Integration support for children and adolescents with disabilities (Section 35a (2) Nos. 3-4)
+---
+template: service_1_7_template
+content: Temporary custody/support for children (Section 42)
+---
+template: service_1_8_template
+content: Support for young adults, similar to residential services (Section 41)
+---
+template: service_2_1_template
+content: Day and partial-time care in emergency or regular settings (Section 91 (2) Nos. 1-4)
+---
+template: service_2_2_template
+content: Upbringing support in day-care groups and partial facilities (Section 92 (1a) No. 4)
+---
+template: service_2_3_template
+content: Integration support in day-care facilities (Section 92 (1a) No. 4, Nos. 2-3)
+---
+template: service_2_4_template
+content: Support for young adults related to residential or care services (Section 41)
+---
+code: |
+  service_labels = [
+    {'service_1_1': str(service_1_1_template)},
+    {'service_1_2': str(service_1_2_template)},
+    {'service_1_3': str(service_1_3_template)},
+    {'service_1_4': str(service_1_4_template)},
+    {'service_1_5': str(service_1_5_template)},
+    {'service_1_6': str(service_1_6_template)},
+    {'service_1_7': str(service_1_7_template)},
+    {'service_1_8': str(service_1_8_template)},
+    {'service_2_1': str(service_2_1_template)},
+    {'service_2_2': str(service_2_2_template)},
+    {'service_2_3': str(service_2_3_template)},
+    {'service_2_4': str(service_2_4_template)}
+  ]
 ---
 id: monthly cost
 question: |
@@ -114,7 +159,7 @@ fields:
 ---
 id: recipient has children 
 question: |
-  Is the recipient pregnant or has child under 6?
+  Is the recipient pregnant or do they have a child under the age of 6?
 fields: 
   - no label: users[0].pregnant
     datatype: yesnoradio
@@ -126,13 +171,9 @@ fields:
   - no label: users[0].benefits
     datatype: yesnoradio
 ---
-code: |
-  if users[0].benefits:
-    child_benefit = 255
----
 id: recipient cash benefit
 question: |
-  Does the recipient gets cash benefits that serve the same purpose as the respective youth welfare benefit?
+  Does the recipient get cash benefits that serve the same purpose as the respective youth welfare benefit?
 fields:
   - no label: users[0].cash_benefit
     datatype: yesnoradio 
@@ -223,14 +264,38 @@ fields:
     datatype: yesnoradio
   - How many: number_children
     show if: additonal_children 
-  - Which child is receiving services: child_position
+---
+id: child being considered
+question: |
+  Which child is receiving services?
+fields:
+  - no label: child_position
     datatype: radio
     choices: 
-      - first
-      - second
-      - third
-      - additional
-    show if: additonal_children
+      code: |
+        order_list
+---
+template: child_first
+content: first
+---
+
+template: child_second
+content: second
+
+---
+template: child_third
+content: third
+---
+template: child_additional
+content: additional
+---
+code: |
+  order_list = [
+    {'first': str(child_first)},
+    {'second': str(child_second)},
+    {'third': str(child_third)},
+    {'additional': str(child_additional)}
+  ]
 ---
 code: |
   deductions = tax_deduction + ss_contribution + other_contributions
@@ -245,12 +310,13 @@ code: |
 
   estimate_cost = True
 ---
+# This is a debugging screen and won't be used later
 id: summary
 event: summary
 question: |
   Summary of your responses:
 subquestion: |
-  - Benefits applicable: ${ benefits.any_true() }
+  - Service: ${ service_category }
   - contributor: ${ 'Parent' if 'Parent' in users[0].contributor else '' } ${ 'Child' if 'Child or adolescent' in users[0].contributor else '' } ${ 'Young adult' if 'Young adult' in users[0].contributor else '' }
   - Monthly income: € ${ monthly_income }
   - Adjusted income: € ${ adjusted_income }
