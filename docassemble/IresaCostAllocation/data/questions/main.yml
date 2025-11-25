@@ -67,6 +67,8 @@ code: |
 
   monthly_cost
 
+  child_benefit
+
   cash_benefit
 
   if users[0].role == "recipient":
@@ -168,9 +170,9 @@ fields:
         service_labels
 validation code: |
   if service_category == "service_2_1" or \
-  benefit == "service_2_2" or \
-  benefit == "service_2_3" or \
-  benefit == "service_2_4":
+  service_category == "service_2_2" or \
+  service_category == "service_2_3" or \
+  service_category == "service_2_4":
     service_type = "partial_time"
   else:
     service_type = "full_time"
@@ -234,6 +236,13 @@ fields:
   - Cost: monthly_cost
     datatype: currency
 ---
+id: recipient child/youth benefits
+question: |
+  Child/youth benefits
+fields:
+  - Does the recipient receive child/youth benefits?: child_benefit
+    datatype: yesnoradio
+---
 id: recipient
 sets:
   - recipient[i].name.first
@@ -261,7 +270,7 @@ fields:
   - Does ${ users[0] } live with ${ recipient[0] }?: users[0].lives_with_recipient
     datatype: yesnoradio
 ---
-id: recipient cash benefit
+id: recipient cash benefits
 question: |
   Does the recipient get cash benefits that serve the same purpose as the respective youth welfare benefit?
 fields:
@@ -341,4 +350,3 @@ question: |
 subquestion: |
   In the finalized interview, this screen will display the cost-sharing summary.
 ---
-
