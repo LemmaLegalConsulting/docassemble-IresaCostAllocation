@@ -11,7 +11,6 @@ include:
 ---
 modules:
   - .contributions
-  - docassemble.base.util
   - docassemble.base.functions
 ---
 initial: True
@@ -233,9 +232,9 @@ code: |
 ---
 id: monthly cost
 question: |
-  Actual monthly cost of the service
+  Service cost
 fields:
-  - Cost: monthly_cost
+  - What is the actual monthly cost of the service?: monthly_cost
     datatype: currency
 ---
 id: recipient child/youth benefits
