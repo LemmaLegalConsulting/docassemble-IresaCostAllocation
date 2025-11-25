@@ -92,12 +92,15 @@ code: |
   users[i].complete = True
 ---
 code: |
+  users.there_is_another = False
+---
+code: |
   if users[0].role == "recipient":
     if users[0].age_in_years() < 18:
       if benefit_type == "full_time":
         placeholder_ending 
     else:
-      if benefit != "1" and benefit != "4" and benefit != "8":
+      if benefit != "one" and benefit != "four" and benefit != "eight":
         placeholder_ending 
 
   benefits_kickout = True
@@ -159,26 +162,26 @@ fields:
   - Which benefit will ${ users[0].name } be contributing to?: benefit
     datatype: radio
     choices:
-      - Housing for young people in residential settings: 1
-      - Housing for parents with children in residential settings: 2
-      - Care/support in emergency residential situations: 3
-      - Placement for attending or completing school: 4
-      - Help with upbringing (full-time foster care, children's homes, etc.): 5
-      - Integration support for children/youth with disabilities: 6
-      - Temporary protective custody (Inobhutnahme): 7
-      - Support for young adults (similar to residential services): 8
-      - Day/partial-time care in emergency or regular settings: 9
-      - Upbringing support in day groups or partial facilities: 10
-      - Integration support in day facilities: 11
-      - Support for young adults (if related to residential services): 12
+      - Housing for young people in residential settings: one
+      - Housing for parents with children in residential settings: two
+      - Care/support in emergency residential situations: three
+      - Placement for attending or completing school: four
+      - Help with upbringing (full-time foster care, children's homes, etc.): five
+      - Integration support for children/youth with disabilities: six
+      - Temporary protective custody (Inobhutnahme): seven
+      - Support for young adults (similar to residential services): eight
+      - Day/partial-time care in emergency or regular settings: nine
+      - Upbringing support in day groups or partial facilities: ten
+      - Integration support in day facilities: eleven
+      - Support for young adults (if related to residential services): twelve
 validation code: |
-  if benefit == "9" or \
-  benefit == "10" or \
-  benefit == "11" or \
-  benefit == "12":
-    benefit_type == "partial_time"
+  if benefit == "nine" or \
+  benefit == "ten" or \
+  benefit == "eleven" or \
+  benefit == "twelve":
+    benefit_type = "partial_time"
   else:
-    benefit_type == "full_time"
+    benefit_type = "full_time"
 ---
 id: monthly cost
 question: |
