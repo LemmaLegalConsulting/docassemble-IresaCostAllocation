@@ -20,6 +20,8 @@ code: |
   set_locale('DE.utf8')
   set_locale(currency_symbol='€')
   update_locale()
+
+  CHILD_BENEFIT = 255
 ---
 objects:
   - users: ALPeopleList.using(there_are_any=True, complete_attribute="complete", target_number=1)
@@ -36,7 +38,7 @@ sections:
 mandatory: True
 code: |
   nav.set_section('section_intro')
-  
+
   welcome
 
   set_progress(5)
@@ -49,7 +51,7 @@ code: |
     if recipient.there_are_any:
       recipient.gather()
 
-  benefit
+  service_category
 
   benefits_kickout
 
@@ -60,7 +62,7 @@ code: |
     users[0].lives_with_recipient
 
     if not users[0].lives_with_recipient: 
-      if benefit_type == "partial_time":
+      if service_type == "partial_time":
         placeholder_ending 
 
   monthly_cost
@@ -76,7 +78,7 @@ code: |
     placeholder_ending 
 
   nav.set_section('section_summary')
-  
+
   placeholder_ending 
 
   set_progress(100)
@@ -97,10 +99,10 @@ code: |
 code: |
   if users[0].role == "recipient":
     if users[0].age_in_years() < 18:
-      if benefit_type == "full_time":
+      if service_type == "full_time":
         placeholder_ending 
     else:
-      if benefit != "one" and benefit != "four" and benefit != "eight":
+      if benefit != "service_1_1" and benefit != "service_1_4" and benefit != "service_1_8":
         placeholder_ending 
 
   benefits_kickout = True
@@ -140,7 +142,7 @@ sets:
 question: |
   About the contributor
 subquestion: |
-  Tell us about the person that will be potentially contributing to the cost of this benefit. 
+  Tell us about the person that will be potentially contributing to the cost of this benefit.
 fields:
   - code: |
       users[0].name_fields()
@@ -150,38 +152,80 @@ fields:
       - A parent or guardian of the person receiving the benefit: parent
       - The person receiving the benefit: recipient
   - When was the recipient born?: users[0].birthdate
-    datatype: BirthDate 
+    datatype: BirthDate
     show if:
       variable: users[0].role
       is: "recipient"
 ---
-id: select benefit 
+id: service_selection
 question: |
-  Benefit selection
-fields: 
-  - Which benefit will ${ users[0].name } be contributing to?: benefit
+  Which service does the recipient require?
+fields:
+  - no label: service_category
     datatype: radio
     choices:
-      - Housing for young people in residential settings: one
-      - Housing for parents with children in residential settings: two
-      - Care/support in emergency residential situations: three
-      - Placement for attending or completing school: four
-      - Help with upbringing (full-time foster care, children's homes, etc.): five
-      - Integration support for children/youth with disabilities: six
-      - Temporary protective custody (Inobhutnahme): seven
-      - Support for young adults (similar to residential services): eight
-      - Day/partial-time care in emergency or regular settings: nine
-      - Upbringing support in day groups or partial facilities: ten
-      - Integration support in day facilities: eleven
-      - Support for young adults (if related to residential services): twelve
+      code: |
+        service_labels
 validation code: |
-  if benefit == "nine" or \
-  benefit == "ten" or \
-  benefit == "eleven" or \
-  benefit == "twelve":
-    benefit_type = "partial_time"
+  if service_category == "service_2_1" or \
+  benefit == "service_2_2" or \
+  benefit == "service_2_3" or \
+  benefit == "service_2_4":
+    service_type = "partial_time"
   else:
-    benefit_type = "full_time"
+    service_type = "full_time"
+---
+template: service_1_1_template
+content: Housing for young people in residential (Section 13 (3))
+---
+template: service_1_2_template
+content: Housing for parents with children in shared residential arrangements (Section 19)
+---
+template: service_1_3_template
+content: Emergency care/support for children and adolescents (Section 20)
+---
+template: service_1_4_template
+content: Placement support for children and adolescents to attend or finish school (Section 21)
+---
+template: service_1_5_template
+content: Assistance with upbringing (full-time foster care, children's homes}, etc.) (Section 92)
+---
+template: service_1_6_template
+content: Integration support for children and adolescents with disabilities (Section 35a (2) Nos. 3-4)
+---
+template: service_1_7_template
+content: Temporary custody/support for children (Section 42)
+---
+template: service_1_8_template
+content: Support for young adults, similar to residential services (Section 41)
+---
+template: service_2_1_template
+content: Day and partial-time care in emergency or regular settings (Section 91 (2) Nos. 1-4)
+---
+template: service_2_2_template
+content: Upbringing support in day-care groups and partial facilities (Section 92 (1a) No. 4)
+---
+template: service_2_3_template
+content: Integration support in day-care facilities (Section 92 (1a) No. 4, Nos. 2-3)
+---
+template: service_2_4_template
+content: Support for young adults related to residential or care services (Section 41)
+---
+code: |
+  service_labels = [
+    {'service_1_1': str(service_1_1_template)},
+    {'service_1_2': str(service_1_2_template)},
+    {'service_1_3': str(service_1_3_template)},
+    {'service_1_4': str(service_1_4_template)},
+    {'service_1_5': str(service_1_5_template)},
+    {'service_1_6': str(service_1_6_template)},
+    {'service_1_7': str(service_1_7_template)},
+    {'service_1_8': str(service_1_8_template)},
+    {'service_2_1': str(service_2_1_template)},
+    {'service_2_2': str(service_2_2_template)},
+    {'service_2_3': str(service_2_3_template)},
+    {'service_2_4': str(service_2_4_template)}
+  ]
 ---
 id: monthly cost
 question: |
@@ -197,16 +241,16 @@ sets:
   - recipient[i].birthdate
 question: |
   Who will be the benefit recipient?
-fields: 
+fields:
   - code: |
       recipient[0].name_fields()
   - When was the recipient born?: recipient[0].birthdate
-    datatype: BirthDate 
+    datatype: BirthDate
 ---
-id: recipient has children 
+id: recipient has children
 question: |
   Pregnancy or caring for child under 6
-fields: 
+fields:
   - Is the contributor pregnant or caring for a child under 6?: users[0].pregnant
     datatype: yesnoradio
 ---
@@ -222,19 +266,19 @@ question: |
   Does the recipient get cash benefits that serve the same purpose as the respective youth welfare benefit?
 fields:
   - no label: cash_benefit
-    datatype: yesnoradio 
+    datatype: yesnoradio
 ---
-id: monthly income 
+id: monthly income
 question: |
   What is ${ users[0] }'s adjusted average monthly income?
-fields: 
+fields:
   - Monthly income: users[0].monthly_income
     datatype: currency
 ---
 id: other recipients with same benefit
 question: |
   Other benefit recipients
-fields: 
+fields:
   - Is ${ users[0] } responsible for other dependents receiving the **same** benefit?: other_recipients_same_benefit
     datatype: yesnoradio
   - How many of those dependents started receiving this benefit **before** ${ recipient[0] }?: prior_recipients_num
@@ -275,7 +319,7 @@ event: summary
 question: |
   Summary of your responses:
 subquestion: |
-  - Benefits applicable: ${ benefits.any_true() }
+  - Service: ${ service_category }
   - contributor: ${ 'Parent' if 'Parent' in users[0].contributor else '' } ${ 'Child' if 'Child or adolescent' in users[0].contributor else '' } ${ 'Young adult' if 'Young adult' in users[0].contributor else '' }
   - Monthly income: € ${ monthly_income }
   - Adjusted income: € ${ adjusted_income }
@@ -283,17 +327,18 @@ subquestion: |
   - Additional reduction: € ${ additional_cost }
   - Income level: € ${ adjusted_income - additional_cost }
 
-  
+
   **Results** € ${ result_cost }
 
 buttons:
-- Exit: exit
-- Restart: restart
+  - Exit: exit
+  - Restart: restart
 ---
 id: placeholder interview end
-event: placeholder_ending 
+event: placeholder_ending
 question: |
-  This is a temporary placeholder ending. 
+  This is a temporary placeholder ending.
 subquestion: |
   In the finalized interview, this screen will display the cost-sharing summary.
 ---
+
