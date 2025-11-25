@@ -22,6 +22,8 @@ code: |
   update_locale()
 
   CHILD_BENEFIT = 255
+
+  CHILD_BENEFIT = 255
 ---
 objects:
   - users: ALPeopleList.using(there_are_any=True, complete_attribute="complete", target_number=1)
@@ -323,6 +325,7 @@ code: |
 
   estimate_cost = True
 ---
+# This is a debugging screen and won't be used later
 id: summary
 event: summary
 question: |
