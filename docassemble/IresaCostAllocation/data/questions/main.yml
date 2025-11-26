@@ -4,14 +4,13 @@ metadata:
   comment: A comprehensive system to determine benefit eligibility, contribution obligations, and income assessments for child and youth welfare services.
   authors:
     - Jim Graszer
+    - Rami Lorca
 ---
 include:
   - docassemble.AssemblyLine:assembly_line.yml
 ---
 modules:
   - .contributions
-  - docassemble.base.util
-  - docassemble.base.functions
 ---
 initial: True
 code: |
@@ -23,7 +22,8 @@ code: |
   CHILD_BENEFIT = 255
 ---
 objects:
-  - users: ALPeopleList.using(there_are_any=True)
+  - users: ALPeopleList.using(there_are_any=True, complete_attribute="complete", target_number=1)
+  - recipient: ALPeopleList.using(complete_attribute="complete")
   - costs_file: DAStaticFile.using(filename='data/sources/income_cost.csv')
 ---
 sections:
@@ -31,37 +31,100 @@ sections:
   - section_recipient: Recipient
   - section_summary: Summary
 ---
-#################### Interview order #####################
+#################### Interview Order Start #####################
+---
 mandatory: True
 code: |
   nav.set_section('section_intro')
+
   welcome
+
   set_progress(5)
+
+  users.gather()
+
+  if users[0].role == "parent":
+    set_recipient
+
+    if recipient.there_are_any:
+      recipient.gather()
+
   service_category
+
+  benefits_kickout
+
+  if users[0].pregnant:
+    placeholder_ending 
+
+  if users[0].role == "parent":
+    users[0].lives_with_recipient
+
+    if not users[0].lives_with_recipient: 
+      if service_type == "partial_time":
+        placeholder_ending 
+
   monthly_cost
 
-  nav.set_section('section_about')
-  set_progress(15)
-  users[0].name.first
-  users[0].pregnant
-  users[0].benefits
-  users[0].cash_benefit
-  users[0].contributor
-  users[0].contributor_benefits
-  users[0].receive_benefits
-  monthly_income
-  tax_deduction
-  insurance
-  daynight_contributes
-  additonal_children
-  child_position
+  child_benefit
+
+  cash_benefit
+
+  if users[0].role == "recipient":
+    placeholder_ending 
+  else:
+    users[0].monthly_income
+    other_recipients_same_benefit
+    impacted_maint_rights
+    placeholder_ending 
 
   nav.set_section('section_summary')
-  set_progress(100)
-  estimate_cost
-  summary
 
-  #docs
+  placeholder_ending 
+
+  set_progress(100)
+---
+#################### Other Blocks Start #####################
+---
+code: |
+  users[i].name.first
+  users[i].role
+  if users[i].role == "recipient":
+    users[i].birthdate
+
+  users[i].complete = True
+---
+code: |
+  users.there_is_another = False
+---
+code: |
+  if users[0].role == "recipient":
+    if users[0].age_in_years() < 18:
+      if service_type == "full_time":
+        placeholder_ending 
+    else:
+      if benefit != "service_1_1" and benefit != "service_1_4" and benefit != "service_1_8":
+        placeholder_ending 
+
+  benefits_kickout = True
+---
+code: |
+  recipient[i].name.first
+  recipient[i].birthdate
+
+  recipient[i].complete = True
+---
+code: |
+  recipient.there_is_another = False
+---
+code: |
+  if users[0].role == "parent":
+    recipient.there_are_any = True
+  else:
+    recipient.there_are_any = False
+
+  set_recipient = True
+---
+#################### Question Blocks Start #####################
 ---
 id: welcome
 question: |
@@ -70,15 +133,47 @@ subquestion: |
   Welfare Cost Assessment (Kostenheranziehung)
 continue button field: welcome
 ---
+id: contributor information
+sets:
+  - users[0].name.first
+  - users[0].name.last
+  - users[0].role
+  - users[0].birthdate
+question: |
+  About the contributor
+subquestion: |
+  Tell us about the person that will be potentially contributing to the cost of this benefit.
+fields:
+  - code: |
+      users[0].name_fields()
+  - This person is...: users[0].role
+    datatype: radio
+    choices:
+      - A parent or guardian of the person receiving the benefit: parent
+      - The person receiving the benefit: recipient
+  - When was the recipient born?: users[0].birthdate
+    datatype: BirthDate
+    show if:
+      variable: users[0].role
+      is: "recipient"
+---
 id: service_selection
 question: |
   Which service does the recipient require?
 fields:
   - no label: service_category
     datatype: radio
-    choices: 
-      code: | 
+    choices:
+      code: |
         service_labels
+validation code: |
+  if service_category == "service_2_1" or \
+  service_category == "service_2_2" or \
+  service_category == "service_2_3" or \
+  service_category == "service_2_4":
+    service_type = "partial_time"
+  else:
+    service_type = "full_time"
 ---
 template: service_1_1_template
 content: Housing for young people in residential (Section 13 (3))
@@ -134,168 +229,84 @@ code: |
 ---
 id: monthly cost
 question: |
-  Actual monthly cost of the service
+  Service cost
 fields:
-  - Cost: monthly_cost
+  - What is the actual monthly cost of the service?: monthly_cost
     datatype: currency
 ---
-id: recipient
+id: recipient child/youth benefits
 question: |
-  Recipent of the service
-fields: 
-  - First name: users[0].name.first
-  - Last name: users[0].name.last
-  - Age: users[0].Age
-  - Gender: users[0].gender
-    datatype: radio
-    choices:
-      - Male: male
-      - Female: female
-      - Other: other
-  - Other gender: users[0].other_gender
-    show if:
-      variable: users[0].gender  
-      is: other
----
-id: recipient has children 
-question: |
-  Is the recipient pregnant or do they have a child under the age of 6?
-fields: 
-  - no label: users[0].pregnant
-    datatype: yesnoradio
----
-id: recipient benefit
-question: |
-  Does the recipient receive child benefits?
+  Child/youth benefits
 fields:
-  - no label: users[0].benefits
+  - Does the recipient receive child/youth benefits?: child_benefit
     datatype: yesnoradio
 ---
-id: recipient cash benefit
+id: recipient
+sets:
+  - recipient[i].name.first
+  - recipient[i].name.last
+  - recipient[i].birthdate
+question: |
+  Who will be the benefit recipient?
+fields:
+  - code: |
+      recipient[0].name_fields()
+  - When was the recipient born?: recipient[0].birthdate
+    datatype: BirthDate
+---
+id: recipient has children
+question: |
+  Pregnancy or caring for child under 6
+fields:
+  - Is the contributor pregnant or caring for a child under 6?: users[0].pregnant
+    datatype: yesnoradio
+---
+id: does parent live with recipient
+question: |
+  Living with recipient
+fields:
+  - Does ${ users[0] } live with ${ recipient[0] }?: users[0].lives_with_recipient
+    datatype: yesnoradio
+---
+id: recipient cash benefits
 question: |
   Does the recipient get cash benefits that serve the same purpose as the respective youth welfare benefit?
 fields:
-  - no label: users[0].cash_benefit
-    datatype: yesnoradio 
----
-id: contributors
-question: |
-  Who is responsible for contributing to the costs?
-fields:
-  - no label: users[0].contributor
-    datatype: radio
-    choices:
-      - Parent: parent
-      - Child or adolescent: child
-      - Young adult (over 18): adult
----
-id: contributor child benefit
-question: |
-  Does the person required to contribute receive child benefit (Kindergeld)?
-subquestion: |
-  Include regular child allowance or similar recurring payments.
-fields: 
-  - no label: users[0].contributor_benefits
+  - no label: cash_benefit
     datatype: yesnoradio
 ---
-id: contributor youth welfare benefit
+id: monthly income
 question: |
-  Does the person required to contribute receive cash benefits that cover the same purpose as youth welfare services?
-subquestion: |
-  For example: cash payments intended to cover costs for child or youth care, support, or placement.
+  What is ${ users[0] }'s adjusted average monthly income?
 fields:
-  - no label: users[0].receive_benefits
+  - Monthly income: users[0].monthly_income
+    datatype: currency
+---
+id: other recipients with same benefit
+question: |
+  Other benefit recipients
+fields:
+  - Is ${ users[0] } responsible for other dependents receiving the **same** benefit?: other_recipients_same_benefit
     datatype: yesnoradio
+  - How many of those dependents started receiving this benefit **before** ${ recipient[0] }?: prior_recipients_num
+    datatype: integer
+    min: 0
+    show if:
+      variable: other_recipients_same_benefit
+      is: True
 ---
-id: monthly income 
+id: impacted maintenance rights
 question: |
-  What is their average monthly income?
-fields: 
-  - Monthly income: monthly_income
-    datatype: currency
----
-id: deduction
-question: |
-  Do you have any expenses or deductions that reduce your income?
-subquestion: |
-  These are:
-
-  - Taxes
-  - Social security contributions
-  - Insurance premiums
-  - Necessary expenses (e.g., rent, debt payments)
-  - Other (please specify in comments below)
-fields: 
-  - taxes: tax_deduction
-    datatype: currency
-  - Compulsory social security contributions: ss_contribution
-    datatype: currency
-  - Contributions, appropriate in terms of reason and amount, to public or private insurance or similar institutions to cover the risks of old age, illness, need for long-term care, and unemployment: other_contributions
-    datatype: currency
----
-id: further costs
-question: |
-  Further costs
-fields: 
-  - Contributions to public or private insurance or similar institutions: insurance
-    datatype: currency
-  - Necessary expenses associated with earning the income: expenses
-    datatype: currency
-  - Debt obligations: debt
-    datatype: currency
----
-id: day and night care
-question: |
-  Does the parent have to contribute to these day/night care costs?
-subquestion: |
-  If yes, please indicate the monthly amount the parent must pay.
+  Impacted maintenance rights
 fields:
-  - Parent contributes: daynight_contributes
+  - Will the maintenance rights of any dependents be impacted if ${ users[0] } contributes to the current benefit?: impacted_maint_rights
     datatype: yesnoradio
-  - Monthly parent contribution: daynight_contribution_amount
-    datatype: number
-    show if: daynight_contributes
----
-id: additional children
-question: |
-  Is the person assessed for the costs of more than one person?
-fields:
-  - no label: additonal_children
-    datatype: yesnoradio
-  - How many: number_children
-    show if: additonal_children 
----
-id: child being considered
-question: |
-  Which child is receiving services?
-fields:
-  - no label: child_position
-    datatype: radio
-    choices: 
-      code: |
-        order_list
----
-template: child_first
-content: first
----
-
-template: child_second
-content: second
-
----
-template: child_third
-content: third
----
-template: child_additional
-content: additional
----
-code: |
-  order_list = [
-    {'first': str(child_first)},
-    {'second': str(child_second)},
-    {'third': str(child_third)},
-    {'additional': str(child_additional)}
-  ]
+  - How many others' maintenance rights would be impacted?: impacted_maint_rights_num
+    datatype: integer
+    min: 1
+    show if:
+      variable: impacted_maint_rights
+      is: True
 ---
 code: |
   deductions = tax_deduction + ss_contribution + other_contributions
@@ -324,9 +335,17 @@ subquestion: |
   - Additional reduction: € ${ additional_cost }
   - Income level: € ${ adjusted_income - additional_cost }
 
-  
+
   **Results** € ${ result_cost }
 
 buttons:
-- Exit: exit
-- Restart: restart
+  - Exit: exit
+  - Restart: restart
+---
+id: placeholder interview end
+event: placeholder_ending
+question: |
+  This is a temporary placeholder ending.
+subquestion: |
+  In the finalized interview, this screen will display the cost-sharing summary.
+---
