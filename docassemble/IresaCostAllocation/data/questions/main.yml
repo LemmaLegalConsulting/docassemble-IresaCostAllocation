@@ -75,12 +75,14 @@ code: |
     users[0].monthly_income
     other_recipients_same_benefit
     impacted_maint_rights
-    placeholder_ending 
+
+    estimate_cost
+    summary
+    #placeholder_ending 
 
   nav.set_section('section_summary')
 
   placeholder_ending 
-
   set_progress(100)
 ---
 #################### Other Blocks Start #####################
@@ -102,7 +104,7 @@ code: |
       if service_type == "full_time":
         placeholder_ending 
     else:
-      if benefit != "service_1_1" and benefit != "service_1_4" and benefit != "service_1_8":
+      if service_category != "service_1_1" and service_category != "service_1_4" and service_category != "service_1_8":
         placeholder_ending 
 
   benefits_kickout = True
@@ -309,15 +311,8 @@ fields:
       is: True
 ---
 code: |
-  deductions = tax_deduction + ss_contribution + other_contributions
-  adjusted_income = (monthly_income - deductions)
-  cost_share = adjusted_income * 0.25
-  additional_cost = (insurance + expenses + debt)
-
-  income_group = adjusted_income - additional_cost
-
   # Use the income and child to determine cost contribution returning up to 3 levels:
-  result_cost = calculate_cost(costs_file.path(), income_group, child_position)
+  result_cost = calculate_cost(costs_file.path(), users[0].monthly_income, impacted_maint_rights_num)
 
   estimate_cost = True
 ---
@@ -328,12 +323,8 @@ question: |
   Summary of your responses:
 subquestion: |
   - Service: ${ service_category }
-  - contributor: ${ 'Parent' if 'Parent' in users[0].contributor else '' } ${ 'Child' if 'Child or adolescent' in users[0].contributor else '' } ${ 'Young adult' if 'Young adult' in users[0].contributor else '' }
-  - Monthly income: € ${ monthly_income }
-  - Adjusted income: € ${ adjusted_income }
-  - Cost contribution: € ${ cost_share }
-  - Additional reduction: € ${ additional_cost }
-  - Income level: € ${ adjusted_income - additional_cost }
+  - contributor: ${ 'Parent' if 'parent' in users[0].role else '' } ${ 'Child/young adult recipient' if 'recipient' in users[0].role else '' } 
+  - Adjusted monthly income: € ${ users[0].monthly_income }
 
 
   **Results** € ${ result_cost }
@@ -348,4 +339,7 @@ question: |
   This is a temporary placeholder ending.
 subquestion: |
   In the finalized interview, this screen will display the cost-sharing summary.
+buttons:
+  - Exit: exit
+  - Restart: restart
 ---
