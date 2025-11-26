@@ -11,8 +11,6 @@ include:
 ---
 modules:
   - .contributions
-  - docassemble.base.functions
-  - docassemble.base.util
 ---
 initial: True
 code: |
