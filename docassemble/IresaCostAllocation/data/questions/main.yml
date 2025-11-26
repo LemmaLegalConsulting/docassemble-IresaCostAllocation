@@ -12,6 +12,7 @@ include:
 modules:
   - .contributions
   - docassemble.base.functions
+  - docassemble.base.util
 ---
 initial: True
 code: |
@@ -19,8 +20,6 @@ code: |
   set_locale('DE.utf8')
   set_locale(currency_symbol='€')
   update_locale()
-
-  CHILD_BENEFIT = 255
 
   CHILD_BENEFIT = 255
 ---
