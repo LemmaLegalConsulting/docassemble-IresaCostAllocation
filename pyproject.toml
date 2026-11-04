@@ -17,7 +17,10 @@ readme = "README.md"
 authors = [
     { name = "Jim Graszer", email = "jim@lemmalegal.com" },
 ]
-dependencies = []
+dependencies = [
+    "docassemble.AssemblyLine",
+    "pandas",
+]
 
 [project.urls]
 Homepage = "https://docassemble.org"
